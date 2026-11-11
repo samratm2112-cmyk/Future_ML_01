@@ -33,11 +33,15 @@ mkdir -p data/raw
 curl -L -o "data/raw/Sample - Superstore.csv" \
   "https://raw.githubusercontent.com/MayurjareMJ/EDA-using-Streamlit/main/Superstore.csv"
 
-# 3. Launch the dashboard
-python dashboard.py
+# 3. Launch the dashboard (Streamlit or Plotly Dash)
+streamlit run app.py        # Streamlit UI (default: http://localhost:8501)
+# OR:
+python dashboard.py         # Plotly Dash UI (http://127.0.0.1:8050)
 ```
 
-Then open **http://127.0.0.1:8050** in your browser.
+### Deployment
+- **Streamlit Community Cloud:** Set Main file path to `app.py`.
+- **Vercel:** Uses `pyproject.toml` (`[tool.vercel] entrypoint = "wsgi:app"`) serving the Dash app.
 
 ---
 
@@ -69,16 +73,21 @@ jupyter nbconvert --to notebook --execute notebooks/01_sales_forecasting.ipynb -
 
 ```
 Future_ML_01/
-├── dashboard.py                  # Interactive Plotly Dash dashboard
+├── app.py                        # Streamlit interactive dashboard (Streamlit Cloud entrypoint)
+├── dashboard.py                  # Plotly Dash interactive dashboard
+├── wsgi.py                       # WSGI entrypoint for Vercel (serves Dash app)
+├── pyproject.toml                # Vercel Python configuration & runtime dependencies
 ├── requirements.txt              # Python dependencies
 ├── src/
 │   ├── __init__.py
+│   ├── charts.py                 # Shared Plotly figures
 │   └── forecast.py               # ML forecasting pipeline (models, features, walk-forward)
 ├── notebooks/
 │   └── 01_sales_forecasting.ipynb # Full EDA & model comparison notebook
 ├── data/
 │   ├── raw/                      # Raw Superstore CSV (not committed)
 │   └── processed/
+│       ├── orders.csv.gz         # Compressed fallback dataset for cloud deployments
 │       ├── weekly_sales.csv      # Aggregated weekly sales
 │       └── future_8w_forecast.csv # 8-week forecast output
 ├── reports/

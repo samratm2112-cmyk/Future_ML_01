@@ -21,4 +21,5 @@ notebook = [
 ]
 
 [tool.vercel]
-entrypoint = "app:app"
+entrypoint = "wsgi:app"
+
