@@ -14,6 +14,7 @@ from sklearn.preprocessing import StandardScaler
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW_DIR = ROOT / "data" / "raw"
+PROCESSED_FALLBACK = ROOT / "data" / "processed" / "orders.csv.gz"
 HOLDOUT_WEEKS = 12
 LAGS = (1, 4, 52)
 ROLLS = (4, 12)
@@ -34,6 +35,8 @@ def find_raw_file() -> Path:
     for path in preferred + extra:
         if path.exists() and path.name != ".gitkeep":
             return path
+    if PROCESSED_FALLBACK.exists():
+        return PROCESSED_FALLBACK
     raise FileNotFoundError(
         "Put the Superstore file in data/raw/ as 'Sample - Superstore.csv'.\n"
         "Download: https://www.kaggle.com/datasets/vivek468/superstore-dataset-final"
@@ -44,6 +47,8 @@ def load_orders() -> pd.DataFrame:
     raw_path = find_raw_file()
     if raw_path.suffix.lower() in {".xls", ".xlsx"}:
         orders = pd.read_excel(raw_path)
+    elif raw_path.suffix.lower() == ".gz":
+        orders = pd.read_csv(raw_path, encoding="utf-8")
     else:
         orders = pd.read_csv(raw_path, encoding="latin-1")
     orders.columns = [c.strip() for c in orders.columns]
@@ -51,7 +56,11 @@ def load_orders() -> pd.DataFrame:
     missing = [c for c in keep if c not in orders.columns]
     if missing:
         raise ValueError(f"Dataset is missing expected columns: {missing}")
-    orders = orders.drop_duplicates()
+    if "Sub-Category" in orders.columns:
+        keep.append("Sub-Category")
+    # PROCESSED_FALLBACK is already cleaned & deduplicated against full raw columns.
+    if raw_path != PROCESSED_FALLBACK:
+        orders = orders.drop_duplicates()
     orders["Order Date"] = pd.to_datetime(orders["Order Date"], errors="coerce")
     orders = orders.dropna(subset=["Order Date", "Sales"])
     if orders["Postal Code"].isna().any():
@@ -116,7 +125,7 @@ def _ridge():
 
 
 def _forest():
-    return RandomForestRegressor(n_estimators=400, min_samples_leaf=2, random_state=42, n_jobs=-1)
+    return RandomForestRegressor(n_estimators=400, min_samples_leaf=2, random_state=42, n_jobs=1)
 
 
 def _walk_forward(weekly: pd.DataFrame, model, horizon: int, lags: tuple[int, ...], cols: list[str]) -> pd.DataFrame:

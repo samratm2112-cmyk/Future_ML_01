@@ -183,15 +183,10 @@ def make_heatmap(result):
 
 def make_treemap(orders_df):
     """Category → Sub-Category treemap if Sub-Category is available."""
-    # Rebuild from raw to get Sub-Category
-    from src.forecast import find_raw_file
-    raw_path = find_raw_file()
-    raw = pd.read_csv(raw_path, encoding="latin-1")
-    raw.columns = [c.strip() for c in raw.columns]
-    if "Sub-Category" not in raw.columns:
+    if "Sub-Category" not in orders_df.columns:
         return go.Figure().update_layout(template="plotly_white", height=320,
             annotations=[dict(text="Sub-Category column not available", showarrow=False)])
-    agg = raw.groupby(["Category", "Sub-Category"], as_index=False)["Sales"].sum()
+    agg = orders_df.groupby(["Category", "Sub-Category"], as_index=False)["Sales"].sum()
     labels, parents, values, colors = [], [], [], []
     cat_totals = agg.groupby("Category")["Sales"].sum().to_dict()
     for cat in sorted(cat_totals):
@@ -248,6 +243,7 @@ app = dash.Dash(
     meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
     suppress_callback_exceptions=True,
 )
+server = app.server
 
 # --- Sidebar ---
 sidebar = dbc.Card([dbc.CardBody([
